@@ -1,0 +1,36 @@
+#pragma once
+#include "LLVM.hpp"
+
+#include "GenericValue.hpp"
+#include "GenericType.hpp"
+
+class MallocFunc;
+class GenericValue;
+
+class Scope {
+public:
+	std::vector<GenericValue> values;
+
+	void add(GenericValue gv) { values.push_back(gv); }
+
+	void add(std::vector<GenericValue> gvs) {
+		for (auto gv : gvs)
+			values.push_back(gv);
+	}
+
+	void create_return(Enviroment &env, llvm::IRBuilder<> &builder, GenericValue gv) {
+		gv.type->copy(env, builder, gv);
+		for (auto scoped_value : values) {
+			scoped_value.type->destroy(env, builder, scoped_value);
+		}
+		builder.CreateRet(gv.value);
+	}
+};
+
+class Enviroment {
+public:
+  llvm::Module *module;
+  MallocFunc &malloc_fn;
+  Scope &scope;
+  std::map<std::string, GenericValue> value_map;
+};
