@@ -23,65 +23,104 @@ public:
   }
 };
 
+class IfMacro : public Macro {
+public:
+  virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                            ASTList args) {
+    auto if_true_block = llvm::BasicBlock::Create(
+        llvm::getGlobalContext(), "if_true",
+        (llvm::Function *)builder.GetInsertPoint()->getParent());
+    auto if_false_block = llvm::BasicBlock::Create(
+        llvm::getGlobalContext(), "if_false",
+        (llvm::Function *)builder.GetInsertPoint()->getParent());
+    auto if_join_block = llvm::BasicBlock::Create(
+        llvm::getGlobalContext(), "if_join",
+        (llvm::Function *)builder.GetInsertPoint()->getParent());
+
+    auto evaluated_condition = args.at(0)->to_value(env, builder);
+    builder.CreateCondBr(evaluated_condition.value, if_true_block,
+                         if_false_block);
+
+    builder.SetInsertPoint(if_true_block);
+    auto evaluated_true_branch = args.at(1)->to_value(env, builder);
+    builder.CreateBr(if_join_block);
+
+    builder.SetInsertPoint(if_false_block);
+    auto evaluated_false_branch = args.at(2)->to_value(env, builder);
+    builder.CreateBr(if_join_block);
+
+    builder.SetInsertPoint(if_join_block);
+    auto joined =
+        builder.CreatePHI(evaluated_true_branch.type->llvm_type(), 2, "joined");
+    joined->addIncoming(evaluated_true_branch.value, if_true_block);
+    joined->addIncoming(evaluated_false_branch.value, if_false_block);
+
+    return GenericValue(evaluated_true_branch.type, joined);
+  }
+  virtual GTPtr return_type(Enviroment &env, ASTList args) {
+    return args.at(1)->return_type(env);
+  }
+};
+
 class PrintFunc : public Function {
 public:
-    void create_mapping(Enviroment &env,
-            GTPtr ty){
-        auto fn_ty = llvm::FunctionType::get(
-                llvm::Type::getVoidTy(llvm::getGlobalContext()),
-                {ty->llvm_type()}, false);
-        auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
-                "print", env.module);
-        fn_map.insert({ty, fn});
+  void create_mapping(Enviroment &env, GTPtr ty) {
+    auto fn_ty =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(llvm::getGlobalContext()),
+                                {ty->llvm_type()}, false);
+    auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
+                                     "print", env.module);
+    fn_map.insert({ty, fn});
+  }
+
+  void create_vector_mapping(Enviroment &env, GTPtr ty) {
+    auto vec_ty = static_cast<VectorType *>(ty.get());
+    auto fn_ty =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(llvm::getGlobalContext()),
+                                {ty->llvm_type()}, false);
+
+    auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
+                                     "print_vec", env.module);
+
+    auto entry =
+        llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", fn);
+    llvm::IRBuilder<> build(entry);
+    auto arg = fn->arg_begin();
+    arg->setName("vec");
+    auto vec_size = build.CreateExtractValue(arg, {0}, "vec_size");
+    auto vec_rc = build.CreateExtractValue(arg, {1}, "vec_rc");
+    auto vec_arr = build.CreateExtractValue(vec_rc, {1}, "vec_arr");
+
+    create_loop(env, build, vec_size, [&](GenericValue v) {
+      auto c = build.CreateGEP(vec_arr, v.value);
+      auto cl = build.CreateLoad(c);
+      call_without_endl(env, build, {GenericValue(vec_ty->sub_type, cl)});
+    });
+
+    build.CreateRetVoid();
+
+    fn_map[ty] = fn;
+  }
+
+  void call_without_endl(Enviroment &env, llvm::IRBuilder<> &builder,
+                         std::vector<GenericValue> vals) {
+    auto not_found = fn_map.find(vals.at(0).type) == fn_map.end();
+    if (not_found) {
+      for (auto i : fn_map) {
+        i.first->llvm_type()->dump();
+      }
+      create_mapping(env, vals.at(0).type);
     }
-
-    void create_vector_mapping(Enviroment &env, GTPtr ty){
-        auto vec_ty = static_cast<VectorType*>(ty.get());
-        auto fn_ty = llvm::FunctionType::get(
-                llvm::Type::getVoidTy(llvm::getGlobalContext()),
-                {ty->llvm_type()}, false);
-
-        auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
-                "print_vec", env.module);
-
-        auto entry = llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", fn);
-        llvm::IRBuilder<> build(entry);
-        auto arg = fn->arg_begin();
-        arg->setName("vec");
-        auto vec_size = build.CreateExtractValue(arg, {0}, "vec_size");
-        auto vec_rc = build.CreateExtractValue(arg, {1}, "vec_rc");
-        auto vec_arr = build.CreateExtractValue(vec_rc, {1}, "vec_arr");
-
-        create_loop(env, build, vec_size, [&](GenericValue v) {
-            auto c = build.CreateGEP(vec_arr, v.value);
-            auto cl = build.CreateLoad(c);
-            call_without_endl(env, build, {GenericValue(vec_ty->sub_type, cl)});
-        });
-
-        build.CreateRetVoid();
-
-        fn_map[ty] = fn;
-    }
-
-    void call_without_endl(Enviroment &env, llvm::IRBuilder<> &builder,
-            std::vector<GenericValue> vals) {
-        auto not_found = fn_map.find(vals.at(0).type) == fn_map.end();
-        if (not_found) {
-            for (auto i : fn_map) {
-                i.first->llvm_type()->dump();
-            }
-            create_mapping(env,
-                    vals.at(0).type);
-        }
-        auto call_fn = fn_map[vals.at(0).type];
-        builder.CreateCall(call_fn, vals.at(0).value);
-    }
+    auto call_fn = fn_map[vals.at(0).type];
+    builder.CreateCall(call_fn, vals.at(0).value);
+  }
 
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
                     std::vector<GenericValue> vals) {
-      call_without_endl(env, builder, vals);
-      builder.CreateCall(fn_map[std::make_shared<CharType>()], builder.getInt8('\n'));
-      return BooleanType().create(nullptr);
+    call_without_endl(env, builder, vals);
+    builder.CreateCall(fn_map[std::make_shared<CharType>()],
+                       builder.getInt8('\n'));
+    return BooleanType().create(nullptr);
   }
 
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
@@ -110,6 +149,36 @@ public:
   }
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
     return static_cast<VectorType *>(args.at(1).get())->sub_type;
+  }
+};
+
+class AddFunc : public Function {
+public:
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto one = vals.at(0);
+    auto two = vals.at(1);
+
+    if (one.type->data_type() == DataType::Integer &&
+        two.type->data_type() == DataType::Integer) {
+      return GenericValue(std::make_shared<IntegerType>(),
+                          builder.CreateAdd(one.value, two.value));
+    }
+    auto first = one.type->data_type() == DataType::Integer
+                     ? builder.CreateSIToFP(one.value, FloatType().llvm_type())
+                     : one.value;
+    auto second = two.type->data_type() == DataType::Integer
+                      ? builder.CreateSIToFP(two.value, FloatType().llvm_type())
+                      : two.value;
+
+    return GenericValue(std::make_shared<FloatType>(),
+                        builder.CreateFAdd(first, second));
+  }
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    if (args.at(0)->data_type() == DataType::Float ||
+        args.at(1)->data_type() == DataType::Float)
+      return std::make_shared<FloatType>();
+    return std::make_shared<IntegerType>();
   }
 };
 
