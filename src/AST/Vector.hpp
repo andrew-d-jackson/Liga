@@ -26,11 +26,7 @@ public:
 
 
         Scope s;
-        Enviroment env2{
-        env.module,
-        env.malloc_fn,
-        s,
-        env.value_map};
+		auto env2 = env.with_new_scope(s);
 
 		for (auto &i : val) {
 			vals.push_back(i->to_value(env2, builder));
@@ -54,11 +50,22 @@ public:
 	};
 
 	virtual std::string as_string() const {
+		
+		if (val.at(0)->type() == DataType::Char) {
+			std::string ret = "\"";
+			for (const auto &i : val) {
+				ret += i->as_string();
+			}
+			ret += "\"";
+			return ret;
+		}
+
 		std::string ret = "( ";
 		for (const auto &i : val) {
 			ret += i->as_string();
+			ret += ' ';
 		}
-		ret += ") ";
+		ret += ")";
 		return ret;
 	}
 };

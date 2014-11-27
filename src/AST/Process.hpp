@@ -65,8 +65,9 @@ public:
 		std::string ret = "[ ";
 		for (const auto &i : val) {
 			ret += i->as_string();
+			ret += ' ';
 		}
-		ret += "] ";
+		ret += "]";
 		return ret;
 	}
 };

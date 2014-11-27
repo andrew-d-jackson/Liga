@@ -25,6 +25,6 @@ public:
 	};
 
 	virtual std::string as_string() const {
-		return std::to_string(val) + "i ";
+		return std::to_string(val) + "i";
 	}
 };

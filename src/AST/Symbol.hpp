@@ -29,5 +29,5 @@ public:
 		return found_value;
 	}
 
-	virtual std::string as_string() const { return val + " "; }
+	virtual std::string as_string() const { return val; }
 };

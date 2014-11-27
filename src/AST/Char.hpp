@@ -26,10 +26,8 @@ public:
 	};
 
 	virtual std::string as_string() const {
-        auto x = std::string("'");
-        x.push_back(val);
-        x.push_back('\'');
-        x.push_back(' ');
+        auto x = std::string("");
+		x.push_back(val);
         return x;
 	}
 };

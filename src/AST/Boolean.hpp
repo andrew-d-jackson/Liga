@@ -27,6 +27,6 @@ public:
 	}
 
 	virtual std::string as_string() const {
-		return val ? "true " : "false ";
+		return val ? "true" : "false";
 	};
 };
