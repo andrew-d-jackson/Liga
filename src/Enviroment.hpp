@@ -25,6 +25,13 @@ public:
 		}
 		builder.CreateRet(gv.value);
 	}
+
+	void destroy_all_but(Enviroment &env, llvm::IRBuilder<> &builder, GenericValue gv) {
+		gv.type->copy(env, builder, gv);
+		for (auto i : values) {
+				i.type->destroy(env, builder, i);
+		}
+	}
 };
 
 class Enviroment {
@@ -33,4 +40,9 @@ public:
   MallocFunc &malloc_fn;
   Scope &scope;
   std::map<std::string, GenericValue> value_map;
+
+  Enviroment with_new_scope(Scope &scope) {
+	  Enviroment ret{ module, malloc_fn, scope, value_map };
+	  return ret;
+  }
 };

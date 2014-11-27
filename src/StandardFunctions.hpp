@@ -41,12 +41,19 @@ public:
     builder.CreateCondBr(evaluated_condition.value, if_true_block,
                          if_false_block);
 
+
     builder.SetInsertPoint(if_true_block);
-    auto evaluated_true_branch = args.at(1)->to_value(env, builder);
+	Scope new_scope_true;
+	auto sub_env_true = env.with_new_scope(new_scope_true);
+	auto evaluated_true_branch = args.at(1)->to_value(sub_env_true, builder);
+	new_scope_true.destroy_all_but(env, builder, evaluated_true_branch);
     builder.CreateBr(if_join_block);
 
-    builder.SetInsertPoint(if_false_block);
-    auto evaluated_false_branch = args.at(2)->to_value(env, builder);
+	builder.SetInsertPoint(if_false_block);
+	Scope new_scope_false;
+	auto sub_env_false = env.with_new_scope(new_scope_false);
+	auto evaluated_false_branch = args.at(2)->to_value(sub_env_false, builder);
+	new_scope_false.destroy_all_but(env, builder, evaluated_false_branch);
     builder.CreateBr(if_join_block);
 
     builder.SetInsertPoint(if_join_block);
@@ -55,8 +62,11 @@ public:
     joined->addIncoming(evaluated_true_branch.value, if_true_block);
     joined->addIncoming(evaluated_false_branch.value, if_false_block);
 
-    return GenericValue(evaluated_true_branch.type, joined);
+    auto ret = GenericValue(evaluated_true_branch.type, joined);
+    env.scope.add(ret);
+    return ret;
   }
+
   virtual GTPtr return_type(Enviroment &env, ASTList args) {
     return args.at(1)->return_type(env);
   }

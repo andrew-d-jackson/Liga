@@ -59,7 +59,7 @@ int main() {
   auto builder = llvm::IRBuilder<>(main_entry);
 
   auto test_parse =
-      parse("[print [if true [+ 2 2] [+ 1 100]]]");
+      parse("[print [if false \"fuck off bro\" \"ya rly\"]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
