@@ -20,6 +20,11 @@ public:
 	}
 
 	GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
+		if (env.value_map.find(val) == env.value_map.end()) {
+			std::cerr << "Could not find symbol: " << val << std::endl;
+			throw;
+			exit(1);
+		}
 		auto found_value = env.value_map[val];
 		return found_value;
 	}

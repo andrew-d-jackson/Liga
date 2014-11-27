@@ -164,32 +164,93 @@ public:
 
 class AddFunc : public Function {
 public:
-  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
-                    std::vector<GenericValue> vals) {
-    auto one = vals.at(0);
-    auto two = vals.at(1);
+	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+		std::vector<GenericValue> vals) {
+		auto one = vals.at(0);
+		auto two = vals.at(1);
 
-    if (one.type->data_type() == DataType::Integer &&
-        two.type->data_type() == DataType::Integer) {
-      return GenericValue(std::make_shared<IntegerType>(),
-                          builder.CreateAdd(one.value, two.value));
-    }
-    auto first = one.type->data_type() == DataType::Integer
-                     ? builder.CreateSIToFP(one.value, FloatType().llvm_type())
-                     : one.value;
-    auto second = two.type->data_type() == DataType::Integer
-                      ? builder.CreateSIToFP(two.value, FloatType().llvm_type())
-                      : two.value;
+		if (one.type->data_type() == DataType::Integer &&
+			two.type->data_type() == DataType::Integer) {
+			return GenericValue(std::make_shared<IntegerType>(),
+				builder.CreateAdd(one.value, two.value));
+		}
+		auto first = one.type->data_type() == DataType::Integer
+			? builder.CreateSIToFP(one.value, FloatType().llvm_type())
+			: one.value;
+		auto second = two.type->data_type() == DataType::Integer
+			? builder.CreateSIToFP(two.value, FloatType().llvm_type())
+			: two.value;
 
-    return GenericValue(std::make_shared<FloatType>(),
-                        builder.CreateFAdd(first, second));
-  }
-  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
-    if (args.at(0)->data_type() == DataType::Float ||
-        args.at(1)->data_type() == DataType::Float)
-      return std::make_shared<FloatType>();
-    return std::make_shared<IntegerType>();
-  }
+		return GenericValue(std::make_shared<FloatType>(),
+			builder.CreateFAdd(first, second));
+	}
+	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+		if (args.at(0)->data_type() == DataType::Float ||
+			args.at(1)->data_type() == DataType::Float)
+			return std::make_shared<FloatType>();
+		return std::make_shared<IntegerType>();
+	}
+};
+
+class ComparisonFunc : public Function {
+public:
+	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+		return std::make_shared<BooleanType>();
+	}
+
+	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+		std::vector<GenericValue> vals) {
+		auto one = vals.at(0);
+		auto two = vals.at(1);
+
+		if (one.type->data_type() == DataType::Integer &&
+			two.type->data_type() == DataType::Integer) {
+			return GenericValue(std::make_shared<BooleanType>(),
+				int_cmp(builder, one.value, two.value));
+		}
+		auto first = one.type->data_type() == DataType::Integer
+			? builder.CreateSIToFP(one.value, FloatType().llvm_type())
+			: one.value;
+		auto second = two.type->data_type() == DataType::Integer
+			? builder.CreateSIToFP(two.value, FloatType().llvm_type())
+			: two.value;
+
+		return GenericValue(std::make_shared<BooleanType>(),
+			float_cmp(builder, first, second));
+	}
+
+	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+};
+
+class EqualityFunc : public ComparisonFunc {
+public:
+	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateICmpEQ(a, b);
+	}
+	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFCmpOEQ(a, b);
+	}
+};
+
+class LessThanFunc : public ComparisonFunc {
+public:
+	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateICmpSLT(a, b);
+	}
+	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFCmpOLT(a, b);
+	}
+};
+
+class GreaterThanFunc : public ComparisonFunc {
+public:
+	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateICmpSGT(a, b);
+	}
+	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFCmpOGT(a, b);
+	}
 };
 
 class AppendFunc : public Function {

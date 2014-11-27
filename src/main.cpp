@@ -49,6 +49,9 @@ int main() {
   env.value_map["fn"] = make_macro(env, std::make_shared<LambdaMacro>());
   env.value_map["if"] = make_macro(env, std::make_shared<IfMacro>());
   env.value_map["append"] = make_func(env, std::make_shared<AppendFunc>());
+  env.value_map[">"] = make_func(env, std::make_shared<GreaterThanFunc>());
+  env.value_map["=="] = make_func(env, std::make_shared<EqualityFunc>());
+  env.value_map["<"] = make_func(env, std::make_shared<LessThanFunc>());
 
   auto main_ty = llvm::FunctionType::get(
       llvm::IntegerType::getInt1Ty(llvm::getGlobalContext()), false);
@@ -59,7 +62,7 @@ int main() {
   auto builder = llvm::IRBuilder<>(main_entry);
 
   auto test_parse =
-      parse("[print [if false \"fuck off bro\" \"ya rly\"]]");
+      parse("[print [if [>>= 5.9 5.8999] \"fuck off bro\" \"ya rly\"]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
