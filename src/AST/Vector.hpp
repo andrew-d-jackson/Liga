@@ -26,12 +26,12 @@ public:
 
 
         Scope s;
-		auto env2 = env.with_new_scope(s);
+		auto env2 = env.with_new_scope(&s);
 
 		for (auto &i : val) {
 			vals.push_back(i->to_value(env2, builder));
 		}
-		auto ptr = env.malloc_fn.to_ptr(env, builder, vals);
+		auto ptr = env.malloc_fn->to_ptr(env, builder, vals);
 
 		auto rc = to_rc(env, builder, ptr);
 
@@ -45,7 +45,7 @@ public:
 		llvm::Constant::getNullValue(rc->getType()) }));
 		auto ret_llvm = builder.CreateInsertValue(ret_base, rc, { 1 });
 		auto ret = VectorType(vals.at(0).type).create(ret_llvm);
-		env.scope.add(ret);
+		env.scope->add(ret);
 		return ret;
 	};
 

@@ -26,7 +26,7 @@ llvm::Value *to_rc(Enviroment &env, llvm::IRBuilder<> &builder,
                 {llvm::Constant::getNullValue(int_ptr_ty),
                  llvm::Constant::getNullValue(ptr->getType())}));
 
-  auto count_ptr = env.malloc_fn.to_ptr(env, builder, builder.getInt32(1));
+  auto count_ptr = env.malloc_fn->to_ptr(env, builder, builder.getInt32(1));
   auto ret = builder.CreateInsertValue(structure, count_ptr, {0});
   ret = builder.CreateInsertValue(ret, ptr, {1});
 
@@ -82,8 +82,8 @@ void destruct_rc(Enviroment &env, llvm::IRBuilder<> &builder,
     fn_builder.CreateBr(join_block);
 
     fn_builder.SetInsertPoint(no_ref_block);
-    env.malloc_fn.free(fn_builder, count_ptr);
-    env.malloc_fn.free(fn_builder, value_ptr);
+    env.malloc_fn->free(fn_builder, count_ptr);
+    env.malloc_fn->free(fn_builder, value_ptr);
     fn_builder.CreateBr(join_block);
 
     fn_builder.SetInsertPoint(join_block);

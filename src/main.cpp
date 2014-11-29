@@ -30,7 +30,7 @@ int main() {
   // OurFPM.add(llvm::createCFGSimplificationPass());
   // OurFPM.doInitialization();
 
-  Enviroment env{module.get(), malloc_fn, global_scope};
+  Enviroment env(module.get(), &malloc_fn, &global_scope);
   // Set the global so the code gen can use this.
   //  TheFPM = &OurFPM;
 
@@ -46,6 +46,7 @@ int main() {
   env.value_map["at"] = make_func(env, std::make_shared<AtFunc>());
   env.value_map["+"] = make_func(env, std::make_shared<AddFunc>());
   env.value_map["="] = make_macro(env, std::make_shared<DefineMacro>());
+  env.value_map["=fn"] = make_macro(env, std::make_shared<DefineFunctionMacro>());
   env.value_map["fn"] = make_macro(env, std::make_shared<LambdaMacro>());
   env.value_map["if"] = make_macro(env, std::make_shared<IfMacro>());
   env.value_map["append"] = make_func(env, std::make_shared<AppendFunc>());
@@ -62,7 +63,10 @@ int main() {
   auto builder = llvm::IRBuilder<>(main_entry);
 
   auto test_parse =
-      parse("[print [if [== 5.9 5.8999] 5 [+ 6 6]]]");
+	  parse("[= fac [fn (a) [if [> a 10] 10 [fac [+ a 1]]]]] [print [fac 2]]");
+
+  //auto test_parse =
+//	  parse("[=fn add (a b) [+ a b]] [print [add 1 2]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
@@ -94,8 +98,8 @@ int main() {
                        (void *)&print_float);
   EE->addGlobalMapping(print->fn_map[std::make_shared<CharType>()],
                        (void *)&print_char);
-  EE->addGlobalMapping(env.malloc_fn.fn, (void *)&print_and_malloc);
-  EE->addGlobalMapping(env.malloc_fn.free_fn, (void *)&print_and_free);
+  EE->addGlobalMapping(env.malloc_fn->fn, (void *)&print_and_malloc);
+  EE->addGlobalMapping(env.malloc_fn->free_fn, (void *)&print_and_free);
 
   std::cout << "Standard Output of Program:" << std::endl << std::endl;
   auto gv = EE->runFunction(main_fn, {});

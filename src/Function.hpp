@@ -26,16 +26,18 @@ public:
                             std::vector<std::shared_ptr<ASTNode>>) = 0;
   virtual GTPtr return_type(Enviroment &env,
                             std::vector<std::shared_ptr<ASTNode>>) = 0;
+  virtual int args_needed_to_determine_type() const { return -1; }
 };
 
 class MacroType : public GenericType {
 private:
   std::function<GTPtr(std::vector<std::shared_ptr<ASTNode>>)> return_type_fn;
+  int args_needed = -1;
 
 public:
   MacroType(std::function<GTPtr(std::vector<std::shared_ptr<ASTNode>>)>
-                return_type_fn)
-      : return_type_fn(return_type_fn) {}
+                return_type_fn, int args)
+				: return_type_fn(return_type_fn), args_needed(args){}
   virtual DataType data_type() const { return DataType::Macro; }
   virtual bool operator==(const GenericType &other) const {
 	  return other.data_type() == data_type();
@@ -48,6 +50,7 @@ public:
                     std::vector<std::shared_ptr<ASTNode>> args) const {
     return return_type_fn(args);
   }
+  virtual int args_needed_to_determine_type() const { return args_needed; }
 };
 
 class FunctionType : public GenericType {
@@ -82,6 +85,6 @@ GenericValue make_macro(Enviroment &env, std::shared_ptr<Macro> f) {
 	return GenericValue(std::make_shared<MacroType>(
 		[f, &env](std::vector<std::shared_ptr<ASTNode>> a) {
 		return f->return_type(env, a);
-	}),
+	}, f->args_needed_to_determine_type()),
 		f);
 };

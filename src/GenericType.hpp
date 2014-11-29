@@ -46,3 +46,13 @@ public:
 		return (*a < *b);
 	}
 };
+
+class GTListComparison {
+public:
+	bool operator()(const GTList &a, const GTList &b) const {
+		for (int i = 0; i < a.size(); i++) {
+			if (*a.at(0) < *b.at(0)) return true;
+		}
+		return false;
+	}
+};

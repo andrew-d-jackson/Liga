@@ -37,12 +37,32 @@ public:
 class Enviroment {
 public:
   llvm::Module *module;
-  MallocFunc &malloc_fn;
-  Scope &scope;
+  MallocFunc *malloc_fn;
+  Scope *scope;
   std::map<std::string, GenericValue> value_map;
 
-  Enviroment with_new_scope(Scope &scope) {
+  Enviroment(llvm::Module *module,
+	  MallocFunc *malloc_fn,
+	  Scope *scope,
+	  std::map<std::string, GenericValue> value_map) : module(module), malloc_fn(malloc_fn), scope(scope), value_map(value_map) {}
+
+  Enviroment() {}
+
+  Enviroment(llvm::Module *module,
+	  MallocFunc *malloc_fn,
+	  Scope *scope) : module(module), malloc_fn(malloc_fn), scope(scope), value_map() {}
+
+  Enviroment with_new_scope(Scope *scope) {
 	  Enviroment ret{ module, malloc_fn, scope, value_map };
 	  return ret;
+  }
+
+
+
+  void operator=(const Enviroment &other) {
+	  value_map = other.value_map;
+	  module = other.module;
+	  scope = scope;
+	  malloc_fn = malloc_fn;
   }
 };

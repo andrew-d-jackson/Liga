@@ -14,7 +14,7 @@ public:
   virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
                             std::vector<std::shared_ptr<ASTNode>> args) {
     auto symbol = static_cast<ASTSymbol *>(args.at(0).get())->val;
-    env.value_map[symbol] = args.at(1)->to_value(env, builder);
+	env.value_map[symbol] = args.at(1)->to_value(env, builder);
     return GenericValue(std::make_shared<BooleanType>(), builder.getTrue());
   }
   virtual GTPtr return_type(Enviroment &env,
@@ -44,14 +44,14 @@ public:
 
     builder.SetInsertPoint(if_true_block);
 	Scope new_scope_true;
-	auto sub_env_true = env.with_new_scope(new_scope_true);
+	auto sub_env_true = env.with_new_scope(&new_scope_true);
 	auto evaluated_true_branch = args.at(1)->to_value(sub_env_true, builder);
 	new_scope_true.destroy_all_but(env, builder, evaluated_true_branch);
     builder.CreateBr(if_join_block);
 
 	builder.SetInsertPoint(if_false_block);
 	Scope new_scope_false;
-	auto sub_env_false = env.with_new_scope(new_scope_false);
+	auto sub_env_false = env.with_new_scope(&new_scope_false);
 	auto evaluated_false_branch = args.at(2)->to_value(sub_env_false, builder);
 	new_scope_false.destroy_all_but(env, builder, evaluated_false_branch);
     builder.CreateBr(if_join_block);
@@ -63,13 +63,16 @@ public:
     joined->addIncoming(evaluated_false_branch.value, if_false_block);
 
     auto ret = GenericValue(evaluated_true_branch.type, joined);
-    env.scope.add(ret);
+    env.scope->add(ret);
     return ret;
   }
 
   virtual GTPtr return_type(Enviroment &env, ASTList args) {
     return args.at(1)->return_type(env);
   }
+
+  virtual int args_needed_to_determine_type() const { return 1; }
+
 };
 
 class PrintFunc : public Function {
@@ -268,7 +271,7 @@ public:
     auto struct_type =
         static_cast<llvm::StructType *>(vals.at(0).type->llvm_type());
 
-    auto new_arr_ptr = env.malloc_fn.sized_call(
+    auto new_arr_ptr = env.malloc_fn->sized_call(
         env, builder, new_size, orig_vec_ty->sub_type->llvm_type());
 
     create_loop(env, builder, orig_size, [&](GenericValue v) {
@@ -291,7 +294,7 @@ public:
     ret_llvm = builder.CreateInsertValue(ret_llvm, rc, {1});
 
     auto ret = vals.at(0).type->create(ret_llvm);
-    env.scope.add(ret);
+    env.scope->add(ret);
     return ret;
   }
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
@@ -301,18 +304,18 @@ public:
 
 class LambdaBase : public Function {
 public:
-  std::map<std::vector<GTPtr>, llvm::Function *> fn_map;
-  std::map<std::vector<GTPtr>, GTPtr> return_type_map;
+	std::map<std::vector<GTPtr>, llvm::Function *, GTListComparison> fn_map;
+  std::map<std::vector<GTPtr>, GTPtr, GTListComparison> return_type_map;
   ASTProcess proc;
   std::vector<std::string> arg_names;
-  Enviroment internal_env;
+  Enviroment *internal_env;
 
   LambdaBase(ASTProcess proc, std::vector<std::string> arg_names,
-             Enviroment internal_env)
+             Enviroment *internal_env)
       : proc(proc), arg_names(arg_names), internal_env(internal_env) {}
 
   void create_fn(std::vector<GTPtr> types) {
-    auto temp_env = internal_env;
+    Enviroment temp_env = *internal_env;
     for (int i = 0; i < types.size(); i++) {
       temp_env.value_map[arg_names.at(i)] = types.at(i)->create(nullptr);
     }
@@ -324,12 +327,14 @@ public:
     auto fn_ty =
         llvm::FunctionType::get(return_type->llvm_type(), llvm_types, false);
     auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
-                                     "custom_function", internal_env.module);
+                                     "custom_function", internal_env->module);
+	fn_map.insert({ types, fn });
+	return_type_map.insert({ types, return_type });
 
     auto entry =
         llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", fn);
     auto build = llvm::IRBuilder<>(entry);
-    Enviroment new_env = internal_env;
+    Enviroment new_env = *internal_env;
 
     auto it = fn->arg_begin();
     for (int i = 0; i < types.size(); i++) {
@@ -337,8 +342,6 @@ public:
     }
 
     build.CreateRet(proc.to_value(new_env, build).value);
-    fn_map.insert({types, fn});
-    return_type_map.insert({types, return_type});
   };
 
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
@@ -383,7 +386,7 @@ public:
       arg_list.push_back(static_cast<ASTSymbol *>(i.get())->val);
 
     return make_func(env,
-                     std::make_shared<LambdaBase>(*proc_ast, arg_list, env));
+                     std::make_shared<LambdaBase>(*proc_ast, arg_list, &env));
   }
 
   virtual GTPtr return_type(Enviroment &env,
@@ -391,4 +394,29 @@ public:
     return std::make_shared<FunctionType>(
         [](std::vector<GTPtr> a) { return a.at(0); });
   }
+};
+
+class DefineFunctionMacro : public Macro {
+public:
+	virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+		std::vector<std::shared_ptr<ASTNode>> args) {
+
+		auto symbol = static_cast<ASTSymbol *>(args.at(0).get())->val;
+		auto proc_ast = static_cast<ASTProcess *>(args.at(2).get());
+		auto arg_ast = static_cast<ASTVector *>(args.at(1).get());
+
+		auto arg_list = std::vector<std::string>();
+		for (auto i : arg_ast->val)
+			arg_list.push_back(static_cast<ASTSymbol *>(i.get())->val);
+
+
+		auto fn = std::make_shared<LambdaBase>(*proc_ast, arg_list, &env);
+		env.value_map[symbol] = make_func(env, fn);
+
+		return GenericValue(std::make_shared<BooleanType>(), builder.getTrue());
+	}
+	virtual GTPtr return_type(Enviroment &env,
+		std::vector<std::shared_ptr<ASTNode>> args) {
+		return std::make_shared<BooleanType>();
+	}
 };
