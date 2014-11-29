@@ -6,3 +6,4 @@
 #include "Types/Char.hpp"
 #include "Types/Float.hpp"
 #include "Types/Vector.hpp"
+#include "Types/Void.hpp"

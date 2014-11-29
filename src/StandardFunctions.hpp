@@ -130,11 +130,11 @@ public:
     call_without_endl(env, builder, vals);
     builder.CreateCall(fn_map[std::make_shared<CharType>()],
                        builder.getInt8('\n'));
-    return BooleanType().create(nullptr);
+	return VoidType().create();
   }
 
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
-    return std::make_shared<BooleanType>();
+    return std::make_shared<VoidType>();
   }
 
   std::map<GTPtr, llvm::Function *, GTPtrComparison> fn_map;

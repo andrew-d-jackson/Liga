@@ -62,7 +62,7 @@ int main() {
   auto builder = llvm::IRBuilder<>(main_entry);
 
   auto test_parse =
-      parse("[print [if [== 5.9 5.8999] \"ya rly\" \"no rly\"]]");
+      parse("[print [if [== 5.9 5.8999] 5 [+ 6 6]]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {

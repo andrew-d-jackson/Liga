@@ -8,6 +8,7 @@ class Enviroment;
 
 enum class DataType {
 	Integer,
+	Void,
     Float,
 	Boolean,
 	Vector,
