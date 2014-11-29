@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.4)
-project(untitled)
+project(Liga)
 
 
 find_package(LLVM REQUIRED CONFIG)
@@ -19,11 +19,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
 include_directories(${CMAKE_SOURCE_DIR})
 
 set(SOURCE_FILES main.cpp main.liga ASTNode.hpp ASTValues.hpp Enviroment.hpp Function.hpp GenericType.hpp GenericValue.hpp LLVM.hpp LLVMUtils.hpp Malloc.hpp Parser.hpp RefrenceCounter.hpp Runtime.hpp StandardFunctions.hpp Types.hpp AST/Boolean.hpp AST/Integer.hpp AST/Float.hpp AST/Process.hpp AST/Char.hpp AST/Symbol.hpp AST/Vector.hpp Types/Char.hpp Types/Boolean.hpp Types/Integer.hpp Types/Float.hpp Types/Void.hpp Types/Vector.hpp)
-add_executable(untitled ${SOURCE_FILES})
+add_executable(Liga ${SOURCE_FILES})
 
-add_custom_command(TARGET untitled
+add_custom_command(TARGET Liga
                    PRE_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/main.liga ${PROJECT_BINARY_DIR})
 
 
-target_link_libraries(untitled ${llvm_libs})
+target_link_libraries(Liga ${llvm_libs})
