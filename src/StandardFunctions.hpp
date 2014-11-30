@@ -301,14 +301,14 @@ public:
 
 class LambdaBase : public Function {
 public:
-  std::map<std::vector<GTPtr>, llvm::Function *> fn_map;
-  std::map<std::vector<GTPtr>, GTPtr> return_type_map;
+  std::map<std::vector<GTPtr>, llvm::Function *, GTListComparison> fn_map;
+  std::map<std::vector<GTPtr>, GTPtr, GTListComparison> return_type_map;
   ASTProcess proc;
   std::vector<std::string> arg_names;
-  Enviroment internal_env;
+  Enviroment &internal_env;
 
   LambdaBase(ASTProcess proc, std::vector<std::string> arg_names,
-             Enviroment internal_env)
+             Enviroment &internal_env)
       : proc(proc), arg_names(arg_names), internal_env(internal_env) {}
 
   void create_fn(std::vector<GTPtr> types) {
@@ -326,6 +326,9 @@ public:
     auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
                                      "custom_function", internal_env.module);
 
+	fn_map.insert({ types, fn });
+	return_type_map.insert({ types, return_type });
+
     auto entry =
         llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", fn);
     auto build = llvm::IRBuilder<>(entry);
@@ -337,8 +340,6 @@ public:
     }
 
     build.CreateRet(proc.to_value(new_env, build).value);
-    fn_map.insert({types, fn});
-    return_type_map.insert({types, return_type});
   };
 
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,

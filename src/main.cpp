@@ -61,8 +61,10 @@ int main() {
   auto main_entry = llvm::BasicBlock::Create(context, "entry", main_fn);
   auto builder = llvm::IRBuilder<>(main_entry);
 
-  auto test_parse =
-      parse("[print [if [== 5.9 5.8999] 5 [+ 6 6]]]");
+//  auto test_parse =
+ //     parse("[print [if [== 5.9 5.8999] 5 [+ 6 6]]]");
+
+  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]] [print [ten 2]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {

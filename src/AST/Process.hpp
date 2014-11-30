@@ -17,6 +17,7 @@ public:
 
 	GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
 		auto first_val = val.at(0)->to_value(env, builder);
+
 		if (first_val.type->data_type() == DataType::Macro) {
 			auto mac_args =
 				std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
@@ -40,24 +41,27 @@ public:
 	};
 
 	virtual GTPtr return_type(Enviroment &env) const {
+		auto first_val_type = val.at(0)->return_type(env);
+
+		if (first_val_type->data_type() == DataType::Macro) {
+			auto args_list =
+				std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
+			return static_cast<MacroType *>(first_val_type.get())
+				->return_type(env, args_list);
+		}
+
 		std::vector<GTPtr> val_types;
 		for (const auto &i : val) {
 			val_types.push_back(i->return_type(env));
 		}
 
-		if (val_types.at(0)->data_type() == DataType::Macro) {
-			auto args_list =
-				std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
-			return static_cast<MacroType *>(val_types.at(0).get())
-				->return_type(env, args_list);
-		}
-
-		if (val_types.at(0)->data_type() == DataType::Function) {
+		if (first_val_type->data_type() == DataType::Function) {
 			auto args_list =
 				std::vector<GTPtr>(val_types.begin() + 1, val_types.end());
 			return static_cast<FunctionType *>(val_types.at(0).get())
 				->return_type(env, args_list);
 		}
+
 		return *(val_types.end() - 1);
 	}
 
