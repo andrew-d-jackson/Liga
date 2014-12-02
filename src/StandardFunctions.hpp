@@ -162,7 +162,7 @@ public:
   }
 };
 
-class AddFunc : public Function {
+class MathFunc : public Function {
 public:
 	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
 		std::vector<GenericValue> vals) {
@@ -172,23 +172,69 @@ public:
 		if (one.type->data_type() == DataType::Integer &&
 			two.type->data_type() == DataType::Integer) {
 			return GenericValue(std::make_shared<IntegerType>(),
-				builder.CreateAdd(one.value, two.value));
+				int_eval(builder, one.value, two.value));
 		}
-		auto first = one.type->data_type() == DataType::Integer
-			? builder.CreateSIToFP(one.value, FloatType().llvm_type())
-			: one.value;
-		auto second = two.type->data_type() == DataType::Integer
-			? builder.CreateSIToFP(two.value, FloatType().llvm_type())
-			: two.value;
+		auto first = to_float(builder, one);
+		auto second = to_float(builder, two);
 
 		return GenericValue(std::make_shared<FloatType>(),
-			builder.CreateFAdd(first, second));
+			float_eval(builder, first.value, second.value));
 	}
+
 	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
 		if (args.at(0)->data_type() == DataType::Float ||
 			args.at(1)->data_type() == DataType::Float)
 			return std::make_shared<FloatType>();
 		return std::make_shared<IntegerType>();
+	}
+
+	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+};
+
+class AddFunc : public MathFunc {
+public:
+	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateAdd(a, b);
+	}
+	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFAdd(a, b);
+	}
+};
+
+class SubtractFunc : public MathFunc {
+public:
+	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateSub(a, b);
+	}
+	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFSub(a, b);
+	}
+};
+
+class MultiplyFunc : public MathFunc {
+public:
+	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateMul(a, b);
+	}
+	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
+		return builder.CreateFMul(a, b);
+	}
+};
+
+class DivideFunc : public Function {
+public:
+	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+		std::vector<GenericValue> vals) {
+		auto one = to_float(builder, vals.at(0));
+		auto two = to_float(builder, vals.at(1));
+
+		auto ret_val = builder.CreateFDiv(one.value, two.value);
+		return FloatType().create(ret_val);
+	}
+
+	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+		return std::make_shared<FloatType>();
 	}
 };
 
@@ -208,15 +254,12 @@ public:
 			return GenericValue(std::make_shared<BooleanType>(),
 				int_cmp(builder, one.value, two.value));
 		}
-		auto first = one.type->data_type() == DataType::Integer
-			? builder.CreateSIToFP(one.value, FloatType().llvm_type())
-			: one.value;
-		auto second = two.type->data_type() == DataType::Integer
-			? builder.CreateSIToFP(two.value, FloatType().llvm_type())
-			: two.value;
+
+		auto first = to_float(builder, one);
+		auto second = to_float(builder, two);
 
 		return GenericValue(std::make_shared<BooleanType>(),
-			float_cmp(builder, first, second));
+			float_cmp(builder, first.value, second.value));
 	}
 
 	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;

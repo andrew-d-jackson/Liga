@@ -45,6 +45,9 @@ int main() {
   env.value_map["print"] = make_func(env, print);
   env.value_map["at"] = make_func(env, std::make_shared<AtFunc>());
   env.value_map["+"] = make_func(env, std::make_shared<AddFunc>());
+  env.value_map["-"] = make_func(env, std::make_shared<SubtractFunc>());
+  env.value_map["*"] = make_func(env, std::make_shared<MultiplyFunc>());
+  env.value_map["/"] = make_func(env, std::make_shared<DivideFunc>());
   env.value_map["="] = make_macro(env, std::make_shared<DefineMacro>());
   env.value_map["fn"] = make_macro(env, std::make_shared<LambdaMacro>());
   env.value_map["if"] = make_macro(env, std::make_shared<IfMacro>());

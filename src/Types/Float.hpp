@@ -21,3 +21,10 @@ public:
 		return GenericValue(std::make_shared<FloatType>(), val);
 	}
 };
+
+GenericValue to_float(llvm::IRBuilder<> &builder, GenericValue val) {
+	auto ret_val = val.type->data_type() == DataType::Integer
+		? builder.CreateSIToFP(val.value, FloatType().llvm_type())
+		: val.value;
+	return FloatType().create(ret_val);
+}
