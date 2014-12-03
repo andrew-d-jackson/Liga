@@ -83,20 +83,35 @@ ASTList parse(std::string str) {
       lst.push_back(std::make_shared<ASTProcess>(sub_result));
       str = std::string(str.begin() + pos + 1, str.end());
     } else if (str.at(0) == '(') {
-      std::size_t pos = 1;
-      std::size_t sub_lists = 0;
-      char to_check = str.at(1);
-      while (!(to_check == ')' && sub_lists == 0)) {
-        if (to_check == '(')
-          ++sub_lists;
-        if (to_check == ')')
-          --sub_lists;
-        to_check = str.at(++pos);
-      }
-      auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
-      auto sub_result = parse(sub_str);
-      lst.push_back(std::make_shared<ASTVector>(sub_result));
-      str = std::string(str.begin() + pos + 1, str.end());
+        std::size_t pos = 1;
+        std::size_t sub_lists = 0;
+        char to_check = str.at(1);
+        while (!(to_check == ')' && sub_lists == 0)) {
+            if (to_check == '(')
+                ++sub_lists;
+            if (to_check == ')')
+                --sub_lists;
+            to_check = str.at(++pos);
+        }
+        auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
+        auto sub_result = parse(sub_str);
+        lst.push_back(std::make_shared<ASTVector>(sub_result));
+        str = std::string(str.begin() + pos + 1, str.end());
+    } else if (str.at(0) == '{') {
+        std::size_t pos = 1;
+        std::size_t sub_lists = 0;
+        char to_check = str.at(1);
+        while (!(to_check == '}' && sub_lists == 0)) {
+            if (to_check == '{')
+                ++sub_lists;
+            if (to_check == '}')
+                --sub_lists;
+            to_check = str.at(++pos);
+        }
+        auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
+        auto sub_result = parse(sub_str);
+        lst.push_back(std::make_shared<ASTTuple>(sub_result));
+        str = std::string(str.begin() + pos + 1, str.end());
     } else if (str.at(0) == ' ' || str.at(0) == '\n') {
         str = std::string(str.begin() + 1, str.end());
     } else if (str.at(0) == '"') {
@@ -115,7 +130,7 @@ ASTList parse(std::string str) {
       for (; pos < str.size(); ++pos) {
         char to_check = str.at(pos);
         if (to_check == '[' || to_check == ']' || to_check == '(' ||
-            to_check == ')' || to_check == ' ' || to_check == '\n')
+                to_check == ')' || to_check == ' ' || to_check == '}' || to_check == '{' || to_check == '\n')
           break;
       }
       auto parsed = parse_symbol(std::string(str.begin(), str.begin() + pos));

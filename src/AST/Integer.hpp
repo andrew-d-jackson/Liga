@@ -7,7 +7,7 @@
 #include "ASTNode.hpp"
 
 class ASTInteger : public ASTNode {
-private:
+public:
 	unsigned val;
 
 public:

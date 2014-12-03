@@ -141,6 +141,36 @@ public:
   llvm::Function *fn;
 };
 
+
+class AtTupleFunc : public Macro {
+public:
+  virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+          std::vector<std::shared_ptr<ASTNode>> args)  {
+    auto idx = args.at(0);
+    auto vec = args.at(1);
+
+    auto index = static_cast<ASTInteger *>(idx.get());
+    auto tuple = vec->to_value(env, builder);
+    auto tuple_ty = static_cast<TupleType*>(tuple.type.get());
+    auto ret_ty = tuple_ty->sub_types.at(index->val);
+
+    auto ret_val = builder.CreateExtractValue(tuple.value, index->val);
+    return ret_ty->create(ret_val);
+  }
+
+  virtual GTPtr return_type(Enviroment &env,
+          std::vector<std::shared_ptr<ASTNode>> args) {
+    auto idx = args.at(0);
+    auto vec = args.at(1);
+
+    auto index = static_cast<ASTInteger *>(idx.get());
+    auto tuple = vec->return_type(env);
+    auto tuple_ty = static_cast<TupleType*>(tuple.get());
+    auto ret_ty = tuple_ty->sub_types.at(index->val);
+    return ret_ty;
+  }
+};
+
 class AtFunc : public Function {
 public:
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,

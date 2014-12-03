@@ -8,3 +8,4 @@
 #include "AST/Process.hpp"
 #include "AST/Symbol.hpp"
 #include "AST/Float.hpp"
+#include "AST/Tuple.hpp"

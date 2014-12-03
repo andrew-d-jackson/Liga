@@ -44,6 +44,7 @@ int main() {
 
   env.value_map["print"] = make_func(env, print);
   env.value_map["at"] = make_func(env, std::make_shared<AtFunc>());
+  env.value_map["att"] = make_macro(env, std::make_shared<AtTupleFunc>());
   env.value_map["+"] = make_func(env, std::make_shared<AddFunc>());
   env.value_map["-"] = make_func(env, std::make_shared<SubtractFunc>());
   env.value_map["*"] = make_func(env, std::make_shared<MultiplyFunc>());
@@ -67,7 +68,8 @@ int main() {
 //  auto test_parse =
  //     parse("[print [if [== 5.9 5.8999] 5 [+ 6 6]]]");
 
-  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]] [print [ten 2]]");
+//  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]] [print [ten 2]]");
+  auto test_parse = parse("[print [att 1 { true 2 6 (7 7) } ]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
@@ -80,7 +82,7 @@ int main() {
   }
 
   /// builder.CreateRet(builder.getTrue());
-  std::cout << global_scope.values.size();
+ // std::cout << global_scope.values.size();
   global_scope.create_return(
       env, builder,
       GenericValue{std::make_shared<BooleanType>(), builder.getTrue()});
