@@ -1,0 +1,5 @@
+*.exe
+*.a
+*.o
+.DS_Store
+src/idea/*
