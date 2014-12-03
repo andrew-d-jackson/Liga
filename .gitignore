@@ -2,4 +2,4 @@
 *.a
 *.o
 .DS_Store
-src/idea/*
+src/.idea/*
