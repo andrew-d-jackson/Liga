@@ -9,23 +9,21 @@
 
 class ASTFloat : public ASTNode {
 private:
-	float val;
+  float val;
 
 public:
-    ASTFloat(float val) : val(val) {}
+  ASTFloat(float val) : val(val) {}
 
-	virtual GTPtr return_type(Enviroment &env) const {
-		return std::make_shared<FloatType>();
-	}
+  virtual GTPtr return_type(Enviroment &env) const {
+    return std::make_shared<FloatType>();
+  }
 
-	virtual DataType type() const { return DataType::Float; }
+  virtual DataType type() const { return DataType::Float; }
 
-	GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
-		auto gen = llvm::ConstantFP::get(return_type(env)->llvm_type(), val);
-		return FloatType().create(gen);
-	};
+  GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
+    auto gen = llvm::ConstantFP::get(return_type(env)->llvm_type(), val);
+    return FloatType().create(gen);
+  };
 
-	virtual std::string as_string() const {
-		return std::to_string(val) + "f";
-	}
+  virtual std::string as_string() const { return std::to_string(val) + "f"; }
 };

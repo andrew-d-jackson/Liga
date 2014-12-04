@@ -44,8 +44,8 @@ void destruct_rc(Enviroment &env, llvm::IRBuilder<> &builder,
                  llvm::Value *rc_val) {
   static std::map<llvm::Type *, llvm::Function *> fn_map;
 
-    auto rc_val_str_type = rc_val->getType();
-    auto rc_val_ptr = builder.CreateExtractValue(rc_val, {1});
+  auto rc_val_str_type = rc_val->getType();
+  auto rc_val_ptr = builder.CreateExtractValue(rc_val, {1});
   auto rc_val_ty = rc_val_ptr->getType();
 
   if (fn_map.find(rc_val_ty) == fn_map.end()) {

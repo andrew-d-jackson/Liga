@@ -28,28 +28,28 @@ public:
   }
 
   llvm::Value *raw_call(llvm::IRBuilder<> &builder, llvm::Value *size,
-	  llvm::Type *t) {
-	  auto c = raw_call(builder, size);
-	  auto pty = llvm::PointerType::get(t, 0);
-	  return builder.CreatePointerCast(c, pty);
+                        llvm::Type *t) {
+    auto c = raw_call(builder, size);
+    auto pty = llvm::PointerType::get(t, 0);
+    return builder.CreatePointerCast(c, pty);
   }
 
-  llvm::Value *sized_call(Enviroment &env, llvm::IRBuilder<> &builder, llvm::Value *size,
-	  llvm::Type *t) {
-	  auto t_size = get_size(env, t);
-	  auto new_size = builder.CreateMul(builder.getInt32(t_size), size);
-	  auto c = raw_call(builder, new_size);
-	  auto pty = llvm::PointerType::get(t, 0);
-	  return builder.CreatePointerCast(c, pty);
+  llvm::Value *sized_call(Enviroment &env, llvm::IRBuilder<> &builder,
+                          llvm::Value *size, llvm::Type *t) {
+    auto t_size = get_size(env, t);
+    auto new_size = builder.CreateMul(builder.getInt32(t_size), size);
+    auto c = raw_call(builder, new_size);
+    auto pty = llvm::PointerType::get(t, 0);
+    return builder.CreatePointerCast(c, pty);
   }
 
   llvm::Value *to_ptr(Enviroment env, llvm::IRBuilder<> &builder,
-	  llvm::Value *val) {
-	  auto val_size =
-		  env.module->getDataLayout()->getTypeStoreSize(val->getType());
-	  auto ret = raw_call(builder, builder.getInt32(val_size));
-	  builder.CreateStore(val, ret, false);
-	  return ret;
+                      llvm::Value *val) {
+    auto val_size =
+        env.module->getDataLayout()->getTypeStoreSize(val->getType());
+    auto ret = raw_call(builder, builder.getInt32(val_size));
+    builder.CreateStore(val, ret, false);
+    return ret;
   }
 
   void free(llvm::IRBuilder<> &builder, llvm::Value *ptr) {
@@ -61,8 +61,8 @@ public:
 
   std::size_t get_size(Enviroment &env, llvm::Type *type) {
     if (type->isPointerTy()) {
-		return 8;
-		//return env.module->getDataLayout()->getPointerSize(0);
+      return 8;
+      // return env.module->getDataLayout()->getPointerSize(0);
     } else if (type->isStructTy()) {
       std::size_t total = 0;
       for (auto it = type->subtype_begin(); it != type->subtype_end(); it++) {
@@ -76,12 +76,12 @@ public:
 
   llvm::Value *to_ptr(Enviroment &env, llvm::IRBuilder<> &builder,
                       std::vector<GenericValue> vals) {
-   // std::size_t val_size = env.module->getDataLayout()->getTypeStoreSize(
-     //                          vals.at(0).value->getType()) *
-       //                    vals.size();
+    // std::size_t val_size = env.module->getDataLayout()->getTypeStoreSize(
+    //                          vals.at(0).value->getType()) *
+    //                    vals.size();
 
-	  std::size_t val_size = get_size(env, vals.at(0).value->getType()) * vals.size();
-
+    std::size_t val_size =
+        get_size(env, vals.at(0).value->getType()) * vals.size();
 
     auto ret = raw_call(builder, builder.getInt32(val_size),
                         vals.at(0).type->llvm_type());

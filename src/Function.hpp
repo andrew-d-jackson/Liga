@@ -38,7 +38,7 @@ public:
       : return_type_fn(return_type_fn) {}
   virtual DataType data_type() const { return DataType::Macro; }
   virtual bool operator==(const GenericType &other) const {
-	  return other.data_type() == data_type();
+    return other.data_type() == data_type();
   }
   virtual llvm::Type *llvm_type() const { throw "Macro has no llvm Type"; }
   virtual GenericValue create(llvm::Value *val) const {
@@ -59,7 +59,7 @@ public:
       : return_type_fn(return_type_fn) {}
   virtual DataType data_type() const { return DataType::Function; }
   virtual bool operator==(const GenericType &other) const {
-	  return other.data_type() == data_type();
+    return other.data_type() == data_type();
   }
   virtual llvm::Type *llvm_type() const { throw "Function has no llvm Type"; }
   virtual GenericValue create(llvm::Value *val) const {
@@ -72,16 +72,17 @@ public:
 };
 
 GenericValue make_func(Enviroment &env, std::shared_ptr<Function> f) {
-	return GenericValue(
-		std::make_shared<FunctionType>(
-		[f, &env](std::vector<GTPtr> a) { return f->return_type(env, a); }),
-		f);
+  return GenericValue(
+      std::make_shared<FunctionType>([f, &env](std::vector<GTPtr> a) {
+        return f->return_type(env, a);
+      }),
+      f);
 };
 
 GenericValue make_macro(Enviroment &env, std::shared_ptr<Macro> f) {
-	return GenericValue(std::make_shared<MacroType>(
-		[f, &env](std::vector<std::shared_ptr<ASTNode>> a) {
-		return f->return_type(env, a);
-	}),
-		f);
+  return GenericValue(std::make_shared<MacroType>([f, &env](
+                          std::vector<std::shared_ptr<ASTNode>> a) {
+                        return f->return_type(env, a);
+                      }),
+                      f);
 };

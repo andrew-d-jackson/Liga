@@ -9,25 +9,25 @@
 
 class ASTChar : public ASTNode {
 private:
-	char val;
+  char val;
 
 public:
-    ASTChar(char val) : val(val) {}
+  ASTChar(char val) : val(val) {}
 
-	virtual GTPtr return_type(Enviroment &env) const {
-		return std::make_shared<CharType>();
-	}
+  virtual GTPtr return_type(Enviroment &env) const {
+    return std::make_shared<CharType>();
+  }
 
-	virtual DataType type() const { return DataType::Char; }
+  virtual DataType type() const { return DataType::Char; }
 
-	GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
-		auto gen = builder.getInt8(val);
-		return CharType().create(gen);
-	};
+  GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
+    auto gen = builder.getInt8(val);
+    return CharType().create(gen);
+  };
 
-	virtual std::string as_string() const {
-        auto x = std::string("");
-		x.push_back(val);
-        return x;
-	}
+  virtual std::string as_string() const {
+    auto x = std::string("");
+    x.push_back(val);
+    return x;
+  }
 };

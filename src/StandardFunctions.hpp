@@ -41,19 +41,18 @@ public:
     builder.CreateCondBr(evaluated_condition.value, if_true_block,
                          if_false_block);
 
-
     builder.SetInsertPoint(if_true_block);
-	Scope new_scope_true;
-	auto sub_env_true = env.with_new_scope(new_scope_true);
-	auto evaluated_true_branch = args.at(1)->to_value(sub_env_true, builder);
-	new_scope_true.destroy_all_but(env, builder, evaluated_true_branch);
+    Scope new_scope_true;
+    auto sub_env_true = env.with_new_scope(new_scope_true);
+    auto evaluated_true_branch = args.at(1)->to_value(sub_env_true, builder);
+    new_scope_true.destroy_all_but(env, builder, evaluated_true_branch);
     builder.CreateBr(if_join_block);
 
-	builder.SetInsertPoint(if_false_block);
-	Scope new_scope_false;
-	auto sub_env_false = env.with_new_scope(new_scope_false);
-	auto evaluated_false_branch = args.at(2)->to_value(sub_env_false, builder);
-	new_scope_false.destroy_all_but(env, builder, evaluated_false_branch);
+    builder.SetInsertPoint(if_false_block);
+    Scope new_scope_false;
+    auto sub_env_false = env.with_new_scope(new_scope_false);
+    auto evaluated_false_branch = args.at(2)->to_value(sub_env_false, builder);
+    new_scope_false.destroy_all_but(env, builder, evaluated_false_branch);
     builder.CreateBr(if_join_block);
 
     builder.SetInsertPoint(if_join_block);
@@ -130,7 +129,7 @@ public:
     call_without_endl(env, builder, vals);
     builder.CreateCall(fn_map[std::make_shared<CharType>()],
                        builder.getInt8('\n'));
-	return VoidType().create();
+    return VoidType().create();
   }
 
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
@@ -141,17 +140,16 @@ public:
   llvm::Function *fn;
 };
 
-
 class AtTupleFunc : public Macro {
 public:
   virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
-          std::vector<std::shared_ptr<ASTNode>> args)  {
+                            std::vector<std::shared_ptr<ASTNode>> args) {
     auto idx = args.at(0);
     auto vec = args.at(1);
 
     auto index = static_cast<ASTInteger *>(idx.get());
     auto tuple = vec->to_value(env, builder);
-    auto tuple_ty = static_cast<TupleType*>(tuple.type.get());
+    auto tuple_ty = static_cast<TupleType *>(tuple.type.get());
     auto ret_ty = tuple_ty->sub_types.at(index->val);
 
     auto ret_val = builder.CreateExtractValue(tuple.value, index->val);
@@ -159,13 +157,13 @@ public:
   }
 
   virtual GTPtr return_type(Enviroment &env,
-          std::vector<std::shared_ptr<ASTNode>> args) {
+                            std::vector<std::shared_ptr<ASTNode>> args) {
     auto idx = args.at(0);
     auto vec = args.at(1);
 
     auto index = static_cast<ASTInteger *>(idx.get());
     auto tuple = vec->return_type(env);
-    auto tuple_ty = static_cast<TupleType*>(tuple.get());
+    auto tuple_ty = static_cast<TupleType *>(tuple.get());
     auto ret_ty = tuple_ty->sub_types.at(index->val);
     return ret_ty;
   }
@@ -194,136 +192,152 @@ public:
 
 class MathFunc : public Function {
 public:
-	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
-		std::vector<GenericValue> vals) {
-		auto one = vals.at(0);
-		auto two = vals.at(1);
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto one = vals.at(0);
+    auto two = vals.at(1);
 
-		if (one.type->data_type() == DataType::Integer &&
-			two.type->data_type() == DataType::Integer) {
-			return GenericValue(std::make_shared<IntegerType>(),
-				int_eval(builder, one.value, two.value));
-		}
-		auto first = to_float(builder, one);
-		auto second = to_float(builder, two);
+    if (one.type->data_type() == DataType::Integer &&
+        two.type->data_type() == DataType::Integer) {
+      return GenericValue(std::make_shared<IntegerType>(),
+                          int_eval(builder, one.value, two.value));
+    }
+    auto first = to_float(builder, one);
+    auto second = to_float(builder, two);
 
-		return GenericValue(std::make_shared<FloatType>(),
-			float_eval(builder, first.value, second.value));
-	}
+    return GenericValue(std::make_shared<FloatType>(),
+                        float_eval(builder, first.value, second.value));
+  }
 
-	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
-		if (args.at(0)->data_type() == DataType::Float ||
-			args.at(1)->data_type() == DataType::Float)
-			return std::make_shared<FloatType>();
-		return std::make_shared<IntegerType>();
-	}
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    if (args.at(0)->data_type() == DataType::Float ||
+        args.at(1)->data_type() == DataType::Float)
+      return std::make_shared<FloatType>();
+    return std::make_shared<IntegerType>();
+  }
 
-	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
-	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+  virtual llvm::Value *int_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                llvm::Value *b) = 0;
+  virtual llvm::Value *float_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                  llvm::Value *b) = 0;
 };
 
 class AddFunc : public MathFunc {
 public:
-	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateAdd(a, b);
-	}
-	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFAdd(a, b);
-	}
+  virtual llvm::Value *int_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                llvm::Value *b) {
+    return builder.CreateAdd(a, b);
+  }
+  virtual llvm::Value *float_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                  llvm::Value *b) {
+    return builder.CreateFAdd(a, b);
+  }
 };
 
 class SubtractFunc : public MathFunc {
 public:
-	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateSub(a, b);
-	}
-	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFSub(a, b);
-	}
+  virtual llvm::Value *int_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                llvm::Value *b) {
+    return builder.CreateSub(a, b);
+  }
+  virtual llvm::Value *float_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                  llvm::Value *b) {
+    return builder.CreateFSub(a, b);
+  }
 };
 
 class MultiplyFunc : public MathFunc {
 public:
-	virtual llvm::Value* int_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateMul(a, b);
-	}
-	virtual llvm::Value* float_eval(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFMul(a, b);
-	}
+  virtual llvm::Value *int_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                llvm::Value *b) {
+    return builder.CreateMul(a, b);
+  }
+  virtual llvm::Value *float_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                  llvm::Value *b) {
+    return builder.CreateFMul(a, b);
+  }
 };
 
 class DivideFunc : public Function {
 public:
-	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
-		std::vector<GenericValue> vals) {
-		auto one = to_float(builder, vals.at(0));
-		auto two = to_float(builder, vals.at(1));
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto one = to_float(builder, vals.at(0));
+    auto two = to_float(builder, vals.at(1));
 
-		auto ret_val = builder.CreateFDiv(one.value, two.value);
-		return FloatType().create(ret_val);
-	}
+    auto ret_val = builder.CreateFDiv(one.value, two.value);
+    return FloatType().create(ret_val);
+  }
 
-	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
-		return std::make_shared<FloatType>();
-	}
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return std::make_shared<FloatType>();
+  }
 };
 
 class ComparisonFunc : public Function {
 public:
-	virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
-		return std::make_shared<BooleanType>();
-	}
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return std::make_shared<BooleanType>();
+  }
 
-	GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
-		std::vector<GenericValue> vals) {
-		auto one = vals.at(0);
-		auto two = vals.at(1);
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto one = vals.at(0);
+    auto two = vals.at(1);
 
-		if (one.type->data_type() == DataType::Integer &&
-			two.type->data_type() == DataType::Integer) {
-			return GenericValue(std::make_shared<BooleanType>(),
-				int_cmp(builder, one.value, two.value));
-		}
+    if (one.type->data_type() == DataType::Integer &&
+        two.type->data_type() == DataType::Integer) {
+      return GenericValue(std::make_shared<BooleanType>(),
+                          int_cmp(builder, one.value, two.value));
+    }
 
-		auto first = to_float(builder, one);
-		auto second = to_float(builder, two);
+    auto first = to_float(builder, one);
+    auto second = to_float(builder, two);
 
-		return GenericValue(std::make_shared<BooleanType>(),
-			float_cmp(builder, first.value, second.value));
-	}
+    return GenericValue(std::make_shared<BooleanType>(),
+                        float_cmp(builder, first.value, second.value));
+  }
 
-	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
-	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) = 0;
+  virtual llvm::Value *int_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                               llvm::Value *b) = 0;
+  virtual llvm::Value *float_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                 llvm::Value *b) = 0;
 };
 
 class EqualityFunc : public ComparisonFunc {
 public:
-	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateICmpEQ(a, b);
-	}
-	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFCmpOEQ(a, b);
-	}
+  virtual llvm::Value *int_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                               llvm::Value *b) {
+    return builder.CreateICmpEQ(a, b);
+  }
+  virtual llvm::Value *float_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                 llvm::Value *b) {
+    return builder.CreateFCmpOEQ(a, b);
+  }
 };
 
 class LessThanFunc : public ComparisonFunc {
 public:
-	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateICmpSLT(a, b);
-	}
-	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFCmpOLT(a, b);
-	}
+  virtual llvm::Value *int_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                               llvm::Value *b) {
+    return builder.CreateICmpSLT(a, b);
+  }
+  virtual llvm::Value *float_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                 llvm::Value *b) {
+    return builder.CreateFCmpOLT(a, b);
+  }
 };
 
 class GreaterThanFunc : public ComparisonFunc {
 public:
-	virtual llvm::Value* int_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateICmpSGT(a, b);
-	}
-	virtual llvm::Value* float_cmp(llvm::IRBuilder<> &builder, llvm::Value* a, llvm::Value* b) {
-		return builder.CreateFCmpOGT(a, b);
-	}
+  virtual llvm::Value *int_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                               llvm::Value *b) {
+    return builder.CreateICmpSGT(a, b);
+  }
+  virtual llvm::Value *float_cmp(llvm::IRBuilder<> &builder, llvm::Value *a,
+                                 llvm::Value *b) {
+    return builder.CreateFCmpOGT(a, b);
+  }
 };
 
 class AppendFunc : public Function {
@@ -399,8 +413,8 @@ public:
     auto fn = llvm::Function::Create(fn_ty, llvm::Function::ExternalLinkage,
                                      "custom_function", internal_env.module);
 
-	fn_map.insert({ types, fn });
-	return_type_map.insert({ types, return_type });
+    fn_map.insert({types, fn});
+    return_type_map.insert({types, return_type});
 
     auto entry =
         llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", fn);
@@ -462,7 +476,8 @@ public:
 
   virtual GTPtr return_type(Enviroment &env,
                             std::vector<std::shared_ptr<ASTNode>> args) {
-    return std::make_shared<FunctionType>(
-        [](std::vector<GTPtr> a) { return a.at(0); });
+    return std::make_shared<FunctionType>([](std::vector<GTPtr> a) {
+      return a.at(0);
+    });
   }
 };

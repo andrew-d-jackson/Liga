@@ -7,23 +7,25 @@
 class Enviroment;
 
 enum class DataType {
-	Integer,
-	Void,
-    Float,
-	Boolean,
-	Vector,
-	Char,
-	Symbol,
-	Process,
-	Tuple,
-	Function,
-	Macro
+  Integer,
+  Void,
+  Float,
+  Boolean,
+  Vector,
+  Char,
+  Symbol,
+  Process,
+  Tuple,
+  Function,
+  Macro
 };
 
 class GenericType {
 public:
-    virtual bool operator==(const GenericType &other) const = 0;
-    virtual bool operator<(const GenericType &other) const {return data_type() < other.data_type();};
+  virtual bool operator==(const GenericType &other) const = 0;
+  virtual bool operator<(const GenericType &other) const {
+    return data_type() < other.data_type();
+  };
   virtual bool is_type_of(const GenericValue &other) const {
     return *this == *other.type;
   }
@@ -43,27 +45,27 @@ using GTList = std::vector<GTPtr>;
 
 class GTPtrComparison {
 public:
-	bool operator()(const GTPtr &a, const GTPtr &b) const {
-		return (*a < *b);
-	}
+  bool operator()(const GTPtr &a, const GTPtr &b) const { return (*a < *b); }
 };
 
 class GTListComparison {
 public:
-	bool operator()(const GTList &a, const GTList &b) const {
-		for (int i = 0; i < a.size(); i++) {
-			if (*a.at(0) < *b.at(0)) return true;
-		}
-		return false;
-	}
+  bool operator()(const GTList &a, const GTList &b) const {
+    for (int i = 0; i < a.size(); i++) {
+      if (*a.at(0) < *b.at(0))
+        return true;
+    }
+    return false;
+  }
 };
 
 class GTListEquality {
 public:
-	bool operator()(const GTList &a, const GTList &b) const {
-		for (int i = 0; i < a.size(); i++) {
-			if (!(*a.at(0) == *b.at(0))) return false;
-		}
-		return true;
-	}
+  bool operator()(const GTList &a, const GTList &b) const {
+    for (int i = 0; i < a.size(); i++) {
+      if (!(*a.at(0) == *b.at(0)))
+        return false;
+    }
+    return true;
+  }
 };
