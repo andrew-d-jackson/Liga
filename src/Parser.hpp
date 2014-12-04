@@ -64,55 +64,50 @@ ASTPtr parse_symbol(std::string str) {
   return std::make_shared<ASTSymbol>(str);
 }
 
+static const std::vector<char> seperators = {'[', ']', '(', ')', '{', '}', ' ', '\n', '"'};
+static const std::vector<char> whitespace = {' ', '"'};
+
+
+bool is_seperator(char c) {
+    auto find = std::find(seperators.begin(), seperators.end(), c);
+    return (find != seperators.end());
+}
+
+bool is_whitespace(char c) {
+    auto find = std::find(whitespace.begin(), whitespace.end(), c);
+    return (find != whitespace.end());
+}
+
+
+ASTList parse(std::string str);
+template <class T>
+void parse_list(ASTList &lst, std::string &str, char opening, char closing){
+    std::size_t pos = 1;
+    std::size_t sub_lists = 0;
+    char to_check = str.at(1);
+    while (!(to_check == closing && sub_lists == 0)) {
+        if (to_check == opening)
+            ++sub_lists;
+        if (to_check == closing)
+            --sub_lists;
+        to_check = str.at(++pos);
+    }
+    auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
+    auto sub_result = parse(sub_str);
+    lst.push_back(std::make_shared<T>(sub_result));
+    str = std::string(str.begin() + pos + 1, str.end());
+}
+
 ASTList parse(std::string str) {
   ASTList lst;
   while (str.size() > 0) {
     if (str.at(0) == '[') {
-      std::size_t pos = 1;
-      std::size_t sub_lists = 0;
-      char to_check = str.at(1);
-      while (!(to_check == ']' && sub_lists == 0)) {
-        if (to_check == '[')
-          ++sub_lists;
-        if (to_check == ']')
-          --sub_lists;
-        to_check = str.at(++pos);
-      }
-      auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
-      auto sub_result = parse(sub_str);
-      lst.push_back(std::make_shared<ASTProcess>(sub_result));
-      str = std::string(str.begin() + pos + 1, str.end());
+        parse_list<ASTProcess>(lst, str, '[', ']');
     } else if (str.at(0) == '(') {
-        std::size_t pos = 1;
-        std::size_t sub_lists = 0;
-        char to_check = str.at(1);
-        while (!(to_check == ')' && sub_lists == 0)) {
-            if (to_check == '(')
-                ++sub_lists;
-            if (to_check == ')')
-                --sub_lists;
-            to_check = str.at(++pos);
-        }
-        auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
-        auto sub_result = parse(sub_str);
-        lst.push_back(std::make_shared<ASTVector>(sub_result));
-        str = std::string(str.begin() + pos + 1, str.end());
+        parse_list<ASTVector>(lst, str, '(', ')');
     } else if (str.at(0) == '{') {
-        std::size_t pos = 1;
-        std::size_t sub_lists = 0;
-        char to_check = str.at(1);
-        while (!(to_check == '}' && sub_lists == 0)) {
-            if (to_check == '{')
-                ++sub_lists;
-            if (to_check == '}')
-                --sub_lists;
-            to_check = str.at(++pos);
-        }
-        auto sub_str = std::string(str.begin() + 1, str.begin() + pos);
-        auto sub_result = parse(sub_str);
-        lst.push_back(std::make_shared<ASTTuple>(sub_result));
-        str = std::string(str.begin() + pos + 1, str.end());
-    } else if (str.at(0) == ' ' || str.at(0) == '\n') {
+        parse_list<ASTTuple>(lst, str, '{', '}');
+    } else if (is_whitespace(str.at(0))) {
         str = std::string(str.begin() + 1, str.end());
     } else if (str.at(0) == '"') {
         auto str_end_pos = std::find(str.begin() + 1, str.end(), '"');
@@ -129,8 +124,7 @@ ASTList parse(std::string str) {
       std::size_t pos = 0;
       for (; pos < str.size(); ++pos) {
         char to_check = str.at(pos);
-        if (to_check == '[' || to_check == ']' || to_check == '(' ||
-                to_check == ')' || to_check == ' ' || to_check == '}' || to_check == '{' || to_check == '\n')
+        if (is_seperator(to_check))
           break;
       }
       auto parsed = parse_symbol(std::string(str.begin(), str.begin() + pos));
