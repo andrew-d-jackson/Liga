@@ -59,6 +59,7 @@ int main() {
   env.value_map["not"] = make_func(env, std::make_shared<BooleanNotFunc>());
   env.value_map["or"] = make_func(env, std::make_shared<BooleanOrFunc>());
   env.value_map["xor"] = make_func(env, std::make_shared<BooleanXorFunc>());
+  env.value_map["and"] = make_func(env, std::make_shared<BooleanAndFunc>());
 
   auto main_ty = llvm::FunctionType::get(
       llvm::IntegerType::getInt1Ty(llvm::getGlobalContext()), false);
@@ -73,7 +74,7 @@ int main() {
 
   //  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]]
   //  [print [ten 2]]");
-  auto test_parse = parse("[print [or true false]][print [xor true true]]");
+  auto test_parse = parse("[print [or true false]][print [and true true]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
