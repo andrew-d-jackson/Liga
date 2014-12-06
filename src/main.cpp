@@ -70,7 +70,7 @@ int main() {
 
   //  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]]
   //  [print [ten 2]]");
-  auto test_parse = parse("[print [att 1 { true 2 6 (7 7) } ]]");
+  auto test_parse = parse("[print [2 + 2]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {
