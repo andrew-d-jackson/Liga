@@ -56,6 +56,9 @@ int main() {
   env.value_map[">"] = make_func(env, std::make_shared<GreaterThanFunc>());
   env.value_map["=="] = make_func(env, std::make_shared<EqualityFunc>());
   env.value_map["<"] = make_func(env, std::make_shared<LessThanFunc>());
+  env.value_map["not"] = make_func(env, std::make_shared<BooleanNotFunc>());
+  env.value_map["or"] = make_func(env, std::make_shared<BooleanOrFunc>());
+  env.value_map["xor"] = make_func(env, std::make_shared<BooleanXorFunc>());
 
   auto main_ty = llvm::FunctionType::get(
       llvm::IntegerType::getInt1Ty(llvm::getGlobalContext()), false);
@@ -70,7 +73,7 @@ int main() {
 
   //  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]]
   //  [print [ten 2]]");
-  auto test_parse = parse("[print [2 + 2]]");
+  auto test_parse = parse("[print [or true false]][print [xor true true]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {

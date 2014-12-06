@@ -190,6 +190,62 @@ public:
   }
 };
 
+class BooleanNotFunc : public Function {
+public:
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto arg = vals.at(0).value;
+    auto ret_val = builder.CreateNot(arg);
+    return BooleanType().create(ret_val);
+  }
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return std::make_shared<BooleanType>();
+  }
+};
+
+class BooleanBaseFunc : public Function {
+public:
+  virtual llvm::Value *eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                            llvm::Value *b) const = 0;
+
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    auto arg1 = vals.at(0).value;
+    auto arg2 = vals.at(1).value;
+
+    auto ret_val = eval(builder, arg1, arg2);
+
+    return BooleanType().create(ret_val);
+  }
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return std::make_shared<BooleanType>();
+  }
+};
+
+class BooleanAndFunc : public BooleanBaseFunc {
+public:
+  virtual llvm::Value *eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                            llvm::Value *b) const {
+    return builder.CreateAnd(a, b);
+  }
+};
+
+class BooleanOrFunc : public BooleanBaseFunc {
+public:
+  virtual llvm::Value *eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                            llvm::Value *b) const {
+    return builder.CreateOr(a, b);
+  }
+};
+
+class BooleanXorFunc : public BooleanBaseFunc {
+public:
+  virtual llvm::Value *eval(llvm::IRBuilder<> &builder, llvm::Value *a,
+                            llvm::Value *b) const {
+    return builder.CreateXor(a, b);
+  }
+};
+
 class MathFunc : public Function {
 public:
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
@@ -476,8 +532,7 @@ public:
 
   virtual GTPtr return_type(Enviroment &env,
                             std::vector<std::shared_ptr<ASTNode>> args) {
-    return std::make_shared<FunctionType>([](std::vector<GTPtr> a) {
-      return a.at(0);
-    });
+    return std::make_shared<FunctionType>(
+        [](std::vector<GTPtr> a) { return a.at(0); });
   }
 };
