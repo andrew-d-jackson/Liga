@@ -53,6 +53,7 @@ int main() {
   env.value_map["fn"] = make_macro(env, std::make_shared<LambdaMacro>());
   env.value_map["if"] = make_macro(env, std::make_shared<IfMacro>());
   env.value_map["append"] = make_func(env, std::make_shared<AppendFunc>());
+  env.value_map["size"] = make_func(env, std::make_shared<SizeFunc>());
   env.value_map[">"] = make_func(env, std::make_shared<GreaterThanFunc>());
   env.value_map["=="] = make_func(env, std::make_shared<EqualityFunc>());
   env.value_map["<"] = make_func(env, std::make_shared<LessThanFunc>());
@@ -74,7 +75,7 @@ int main() {
 
   //  auto test_parse = parse("[= ten [fn (a) [if [> a 10] 10 [ten [+ a 1]]]]]
   //  [print [ten 2]]");
-  auto test_parse = parse("[print [or true false]][print [and true true]]");
+  auto test_parse = parse("[print [size {1 2 3 4}]]");
 
   std::cout << "Parsed Program: " << std::endl << std::endl;
   for (const auto &i : test_parse) {

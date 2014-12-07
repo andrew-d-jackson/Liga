@@ -396,6 +396,27 @@ public:
   }
 };
 
+class SizeFunc : public Function {
+public:
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+    if (vals.at(0).type->data_type() == DataType::Vector) {
+      auto vec = vals.at(0).value;
+      auto vec_size = builder.CreateExtractValue(vec, {0});
+      return IntegerType().create(vec_size);
+    } else if (vals.at(0).type->data_type() == DataType::Tuple) {
+      auto tuple_type = static_cast<TupleType *>(vals.at(0).type.get());
+      auto tuple_size = tuple_type->sub_types.size();
+      return IntegerType().create(tuple_size);
+    }
+    throw;
+  }
+
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return std::make_shared<IntegerType>();
+  }
+};
+
 class AppendFunc : public Function {
 public:
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,

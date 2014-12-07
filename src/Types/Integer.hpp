@@ -17,6 +17,10 @@ public:
     return llvm::IntegerType::getInt32Ty(llvm::getGlobalContext());
   }
   virtual GenericValue create(llvm::Value *val) const {
-    return GenericValue(std::make_shared<IntegerType>(), val);
+	  return GenericValue(std::make_shared<IntegerType>(), val);
+  }
+  GenericValue create(int val) const {
+	  auto v = llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(llvm::getGlobalContext()), val);
+	  return GenericValue(std::make_shared<IntegerType>(), v);
   }
 };
