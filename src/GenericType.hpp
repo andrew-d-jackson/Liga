@@ -51,6 +51,8 @@ public:
 class GTListComparison {
 public:
   bool operator()(const GTList &a, const GTList &b) const {
+    if (a.size() != b.size())
+      return a.size() < b.size();
     for (int i = 0; i < a.size(); i++) {
       if (*a.at(0) < *b.at(0))
         return true;
@@ -62,6 +64,8 @@ public:
 class GTListEquality {
 public:
   bool operator()(const GTList &a, const GTList &b) const {
+    if (a.size() != b.size())
+      return false;
     for (int i = 0; i < a.size(); i++) {
       if (!(*a.at(0) == *b.at(0)))
         return false;

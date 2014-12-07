@@ -467,20 +467,20 @@ class LambdaBase : public Function {
 public:
   std::map<std::vector<GTPtr>, llvm::Function *, GTListComparison> fn_map;
   std::map<std::vector<GTPtr>, GTPtr, GTListComparison> return_type_map;
-  ASTProcess proc;
-  std::vector<std::string> arg_names;
+  std::map<std::size_t, ASTProcess> proc_map;
+  std::map<std::size_t, std::vector<std::string>> arg_names;
   Enviroment &internal_env;
 
-  LambdaBase(ASTProcess proc, std::vector<std::string> arg_names,
+  LambdaBase(std::map<std::size_t, ASTProcess> proc_map, std::map<std::size_t, std::vector<std::string>> arg_names,
              Enviroment &internal_env)
-      : proc(proc), arg_names(arg_names), internal_env(internal_env) {}
+			 : proc_map(proc_map), arg_names(arg_names), internal_env(internal_env) {}
 
   void create_fn(std::vector<GTPtr> types) {
     auto temp_env = internal_env;
     for (int i = 0; i < types.size(); i++) {
-      temp_env.value_map[arg_names.at(i)] = types.at(i)->create(nullptr);
+      temp_env.value_map[arg_names[types.size()].at(i)] = types.at(i)->create(nullptr);
     }
-    auto return_type = proc.return_type(temp_env);
+    auto return_type = proc_map[types.size()].return_type(temp_env);
     std::vector<llvm::Type *> llvm_types;
     for (const auto &i : types)
       llvm_types.push_back(i->llvm_type());
@@ -500,10 +500,10 @@ public:
 
     auto it = fn->arg_begin();
     for (int i = 0; i < types.size(); i++) {
-      new_env.value_map[arg_names.at(i)] = types.at(i)->create(it++);
+		new_env.value_map[arg_names[types.size()].at(i)] = types.at(i)->create(it++);
     }
 
-    build.CreateRet(proc.to_value(new_env, build).value);
+    build.CreateRet(proc_map[types.size()].to_value(new_env, build).value);
   };
 
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
@@ -540,15 +540,28 @@ public:
 
   virtual GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
                             std::vector<std::shared_ptr<ASTNode>> args) {
-    auto proc_ast = static_cast<ASTProcess *>(args.at(1).get());
-    auto arg_ast = static_cast<ASTVector *>(args.at(0).get());
 
-    auto arg_list = std::vector<std::string>();
-    for (auto i : arg_ast->val)
-      arg_list.push_back(static_cast<ASTSymbol *>(i.get())->val);
+    std::map<std::size_t, ASTProcess> proc_map;
+    std::map<std::size_t, std::vector<std::string>> arg_names;
+
+    for (auto it = args.begin(); it != args.end();) {
+      auto arg_ast = static_cast<ASTVector *>(it->get());
+      it++;
+      auto proc_ast = static_cast<ASTProcess *>(it->get());
+      it++;
+
+      std::vector<std::string> arg_list;
+      for (auto i : arg_ast->val) {
+        arg_list.push_back(static_cast<ASTSymbol *>(i.get())->val);
+      }
+
+	  proc_map[arg_list.size()] = *proc_ast;
+	  arg_names.insert({ arg_list.size(), arg_list });
+
+    }
 
     return make_func(env,
-                     std::make_shared<LambdaBase>(*proc_ast, arg_list, env));
+		std::make_shared<LambdaBase>(proc_map, arg_names, env));
   }
 
   virtual GTPtr return_type(Enviroment &env,

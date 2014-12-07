@@ -11,6 +11,8 @@ public:
   std::vector<std::shared_ptr<ASTNode>> val;
 
 public:
+  ASTProcess() : val() {}
+  ASTProcess(const ASTProcess &other) : val(other.val) {}
   ASTProcess(std::vector<std::shared_ptr<ASTNode>> val) : val(val) {}
 
   virtual DataType type() const { return DataType::Process; }
