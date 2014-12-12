@@ -417,6 +417,28 @@ public:
   }
 };
 
+class ReplaceFunc : public Function {
+public:
+  GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
+                    std::vector<GenericValue> vals) {
+
+    auto index = vals.at(0);
+    auto new_val = vals.at(1);
+    auto original = vals.at(2);
+
+    auto new_vec = copy_vec(env, builder, original);
+    auto new_vec_arr_ptr = get_vec_arr_ptr(builder, new_vec);
+    auto index_ptr = builder.CreateGEP(new_vec_arr_ptr, index.value);
+    builder.CreateStore(new_val.value, index_ptr);
+
+    return new_vec;
+  }
+
+  virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
+    return args.at(2);
+  }
+};
+
 class AppendFunc : public Function {
 public:
   GenericValue call(Enviroment &env, llvm::IRBuilder<> &builder,
@@ -471,14 +493,16 @@ public:
   std::map<std::size_t, std::vector<std::string>> arg_names;
   Enviroment &internal_env;
 
-  LambdaBase(std::map<std::size_t, ASTProcess> proc_map, std::map<std::size_t, std::vector<std::string>> arg_names,
+  LambdaBase(std::map<std::size_t, ASTProcess> proc_map,
+             std::map<std::size_t, std::vector<std::string>> arg_names,
              Enviroment &internal_env)
-			 : proc_map(proc_map), arg_names(arg_names), internal_env(internal_env) {}
+      : proc_map(proc_map), arg_names(arg_names), internal_env(internal_env) {}
 
   void create_fn(std::vector<GTPtr> types) {
     auto temp_env = internal_env;
     for (int i = 0; i < types.size(); i++) {
-      temp_env.value_map[arg_names[types.size()].at(i)] = types.at(i)->create(nullptr);
+      temp_env.value_map[arg_names[types.size()].at(i)] =
+          types.at(i)->create(nullptr);
     }
     auto return_type = proc_map[types.size()].return_type(temp_env);
     std::vector<llvm::Type *> llvm_types;
@@ -500,7 +524,8 @@ public:
 
     auto it = fn->arg_begin();
     for (int i = 0; i < types.size(); i++) {
-		new_env.value_map[arg_names[types.size()].at(i)] = types.at(i)->create(it++);
+      new_env.value_map[arg_names[types.size()].at(i)] =
+          types.at(i)->create(it++);
     }
 
     build.CreateRet(proc_map[types.size()].to_value(new_env, build).value);
@@ -555,13 +580,12 @@ public:
         arg_list.push_back(static_cast<ASTSymbol *>(i.get())->val);
       }
 
-	  proc_map[arg_list.size()] = *proc_ast;
-	  arg_names.insert({ arg_list.size(), arg_list });
-
+      proc_map[arg_list.size()] = *proc_ast;
+      arg_names.insert({arg_list.size(), arg_list});
     }
 
     return make_func(env,
-		std::make_shared<LambdaBase>(proc_map, arg_names, env));
+                     std::make_shared<LambdaBase>(proc_map, arg_names, env));
   }
 
   virtual GTPtr return_type(Enviroment &env,
