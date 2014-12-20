@@ -1,7 +1,10 @@
 #pragma once
 #include "LLVM.hpp"
 
+#include "LLVMUtils.hpp"
+#include "Malloc.hpp"
 #include "GenericValue.hpp"
+#include "RefrenceCounter.hpp"
 #include "GenericType.hpp"
 #include "Enviroment.hpp"
 #include "Function.hpp"
