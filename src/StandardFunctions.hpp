@@ -24,6 +24,9 @@ public:
                             std::vector<std::shared_ptr<ASTNode>> args) {
     return std::make_shared<BooleanType>();
   }
+  virtual bool is_pure(Enviroment &env, std::vector<std::shared_ptr<ASTNode>>) {
+	  return false;
+  }
 };
 
 class IfMacro : public Macro {
@@ -273,6 +276,10 @@ public:
         args.at(1)->data_type() == DataType::Float)
       return std::make_shared<FloatType>();
     return std::make_shared<IntegerType>();
+  }
+
+  virtual bool is_pure(Enviroment &env, std::vector<GTPtr> args) {
+	  return true;
   }
 
   virtual llvm::Value *int_eval(llvm::IRBuilder<> &builder, llvm::Value *a,
@@ -593,7 +600,8 @@ public:
 
   virtual GTPtr return_type(Enviroment &env,
                             std::vector<std::shared_ptr<ASTNode>> args) {
-    return std::make_shared<FunctionType>(
-        [](std::vector<GTPtr> a) { return a.at(0); });
+	  return std::make_shared<FunctionType>(
+		  [](std::vector<GTPtr> a) { return a.at(0); },
+		  [](std::vector<GTPtr> a) { return false; });
   }
 };

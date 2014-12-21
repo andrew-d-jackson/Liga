@@ -18,8 +18,10 @@ public:
   std::vector<GenericValue> generate_values(Enviroment &env,
 	  llvm::IRBuilder<> &builder) const;
   GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder);
+  GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder, bool dont_evaluate_purely);
   virtual GTPtr return_type(Enviroment &env) const;
   virtual std::string as_string() const;
+  virtual bool is_pure(Enviroment &env) const;
 
 public:
 	std::vector<std::shared_ptr<ASTNode>> val;

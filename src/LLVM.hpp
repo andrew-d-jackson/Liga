@@ -17,3 +17,4 @@
 #include "llvm/PassManager.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Analysis/Passes.h"
+#include "llvm/Transforms/Utils/Cloning.h"

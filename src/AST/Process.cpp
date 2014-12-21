@@ -40,30 +40,59 @@ ASTProcess::generate_values(Enviroment &env, llvm::IRBuilder<> &builder) const {
   return values;
 }
 
+GenericValue reduce(Enviroment &env, llvm::IRBuilder<> &builder, ASTProcess p) {
+	auto ret_ty = p.return_type(env);
+	auto temp_ty = llvm::FunctionType::get(
+		ret_ty->llvm_type(), false);
+
+	auto temp_fn = llvm::Function::Create(
+		temp_ty, llvm::Function::ExternalLinkage, "temp", env.module);
+
+	auto temp_entry = llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", temp_fn);
+	auto new_builder = llvm::IRBuilder<>(temp_entry);
+	auto ret = p.to_value(env, new_builder, true);
+	new_builder.CreateRet(ret.value);
+
+	llvm::ExecutionEngine *EE = llvm::EngineBuilder(env.module).create();
+	auto gv = EE->runFunction(temp_fn, {});
+	auto ret_ast = ret_ty->create_ast(gv);
+	return ret_ast->to_value(env, builder);
+		
+}
+
+
+GenericValue ASTProcess::to_value(Enviroment &env, llvm::IRBuilder<> &builder, bool dont_evaluate_purely) {
+	if (is_prefix_call(env, DataType::Macro)) {
+		auto mac_args =
+			std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
+		return val.at(0)
+			->to_value(env, builder)
+			.macro->call(env, builder, mac_args);
+	}
+
+	auto values = generate_values(env, builder);
+
+	if (is_prefix_call(env, DataType::Function)) {
+		if (is_pure(env) && !dont_evaluate_purely) {
+			return reduce(env, builder, *this);
+		}
+
+		auto fn_args = std::vector<GenericValue>(values.begin() + 1, values.end());
+		return values.at(0).func->call(env, builder, fn_args);
+	}
+
+	if (is_infix_func_call(env)) {
+		std::vector<GenericValue> fn_args;
+		fn_args.push_back(values.at(0));
+		fn_args.push_back(values.at(2));
+		return values.at(1).func->call(env, builder, fn_args);
+	}
+
+	return *(values.end() - 1);
+}
+
 GenericValue ASTProcess::to_value(Enviroment &env, llvm::IRBuilder<> &builder) {
-  if (is_prefix_call(env, DataType::Macro)) {
-    auto mac_args =
-        std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
-    return val.at(0)
-        ->to_value(env, builder)
-        .macro->call(env, builder, mac_args);
-  }
-
-  auto values = generate_values(env, builder);
-
-  if (is_prefix_call(env, DataType::Function)) {
-    auto fn_args = std::vector<GenericValue>(values.begin() + 1, values.end());
-    return values.at(0).func->call(env, builder, fn_args);
-  }
-
-  if (is_infix_func_call(env)) {
-    std::vector<GenericValue> fn_args;
-    fn_args.push_back(values.at(0));
-    fn_args.push_back(values.at(2));
-    return values.at(1).func->call(env, builder, fn_args);
-  }
-
-  return *(values.end() - 1);
+	return to_value(env, builder, false);
 };
 
 GTPtr ASTProcess::return_type(Enviroment &env) const {
@@ -102,4 +131,31 @@ std::string ASTProcess::as_string() const {
   }
   ret += "]";
   return ret;
+}
+
+bool ASTProcess::is_pure(Enviroment &env) const {
+	if (is_prefix_call(env, DataType::Macro)) {
+		auto args_list =
+			std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());
+		return static_cast<MacroType *>(val.at(0)->return_type(env).get())
+			->is_pure(env, args_list);
+	}
+
+	auto val_types = get_value_types(env);
+
+	if (is_prefix_call(env, DataType::Function)) {
+		auto args_list = std::vector<GTPtr>(val_types.begin() + 1, val_types.end());
+		return static_cast<FunctionType *>(val_types.at(0).get())
+			->is_pure(env, args_list);
+	}
+
+	if (is_infix_func_call(env)) {
+		std::vector<GTPtr> args_list;
+		args_list.push_back(val_types.at(0));
+		args_list.push_back(val_types.at(2));
+		return static_cast<FunctionType *>(val_types.at(1).get())
+			->is_pure(env, args_list);
+	}
+
+	return true;
 }
