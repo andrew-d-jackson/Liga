@@ -50,8 +50,10 @@ GenericValue reduce(Enviroment &env, llvm::IRBuilder<> &builder, ASTProcess p) {
 
 	auto temp_entry = llvm::BasicBlock::Create(llvm::getGlobalContext(), "entry", temp_fn);
 	auto new_builder = llvm::IRBuilder<>(temp_entry);
-	auto ret = p.to_value(env, new_builder, true);
-	new_builder.CreateRet(ret.value);
+	auto new_scope = Scope();
+	auto new_env = env.with_new_scope(new_scope);
+	auto ret = p.to_value(new_env, new_builder, true);
+	new_env.scope.create_return(new_env, new_builder, ret);
 
 	llvm::ExecutionEngine *EE = llvm::EngineBuilder(env.module).create();
 	auto gv = EE->runFunction(temp_fn, {});
@@ -70,16 +72,17 @@ GenericValue ASTProcess::to_value(Enviroment &env, llvm::IRBuilder<> &builder, b
 			.macro->call(env, builder, mac_args);
 	}
 
-	auto values = generate_values(env, builder);
 
 	if (is_prefix_call(env, DataType::Function)) {
 		if (is_pure(env) && !dont_evaluate_purely) {
 			return reduce(env, builder, *this);
 		}
-
+		auto values = generate_values(env, builder);
 		auto fn_args = std::vector<GenericValue>(values.begin() + 1, values.end());
 		return values.at(0).func->call(env, builder, fn_args);
 	}
+
+	auto values = generate_values(env, builder);
 
 	if (is_infix_func_call(env)) {
 		std::vector<GenericValue> fn_args;

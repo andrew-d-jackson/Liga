@@ -194,6 +194,9 @@ public:
   virtual GTPtr return_type(Enviroment &env, std::vector<GTPtr> args) {
     return static_cast<VectorType *>(args.at(1).get())->sub_type;
   }
+  virtual bool is_pure(Enviroment &env, std::vector<GTPtr> args) {
+	  return true;
+  }
 };
 
 class BooleanNotFunc : public Function {
