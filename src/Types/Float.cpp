@@ -2,6 +2,7 @@
 
 #include "Enviroment.hpp"
 #include "Function.hpp"
+#include "AST/Float.hpp"
 
 DataType FloatType::data_type() const { return DataType::Float; }
 
@@ -15,6 +16,11 @@ llvm::Type *FloatType::llvm_type() const {
 
 GenericValue FloatType::create(llvm::Value *val) const {
   return GenericValue(std::make_shared<FloatType>(), val);
+}
+
+ASTPtr FloatType::create_ast(llvm::GenericValue gv) const {
+	auto val = static_cast<float>(gv.FloatVal);
+	return std::make_shared<ASTFloat>(val);
 }
 
 GenericValue to_float(llvm::IRBuilder<> &builder, GenericValue val) {

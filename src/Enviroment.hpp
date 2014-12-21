@@ -6,6 +6,7 @@
 
 class MallocFunc;
 class GenericValue;
+class Enviroment;
 
 class Scope {
 public:

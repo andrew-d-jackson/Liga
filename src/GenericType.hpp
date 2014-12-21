@@ -5,6 +5,7 @@
 #include <memory>
 
 class Enviroment;
+class ASTNode;
 
 enum class DataType {
   Integer,
@@ -38,6 +39,7 @@ public:
   virtual void destroy(Enviroment &env, llvm::IRBuilder<> &builder,
                        GenericValue val) const {};
   virtual GenericValue create(llvm::Value *val) const = 0;
+  virtual std::shared_ptr<ASTNode> create_ast(llvm::GenericValue gv) const { throw; }
 };
 
 using GTPtr = std::shared_ptr<GenericType>;

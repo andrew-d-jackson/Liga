@@ -1,5 +1,7 @@
 #include "Char.hpp"
 
+#include "AST/Char.hpp"
+
 DataType CharType::data_type() const { return DataType::Char; }
 
 bool CharType::operator==(const GenericType &other) const {
@@ -12,4 +14,10 @@ llvm::Type *CharType::llvm_type() const {
 
 GenericValue CharType::create(llvm::Value *val) const {
   return GenericValue(std::make_shared<CharType>(), val);
+}
+
+
+ASTPtr CharType::create_ast(llvm::GenericValue gv) const {
+	auto val = static_cast<char>(gv.IntVal.getZExtValue());
+	return std::make_shared<ASTChar>(val);
 }

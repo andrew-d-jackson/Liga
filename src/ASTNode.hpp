@@ -3,10 +3,11 @@
 
 #include "GenericValue.hpp"
 #include "GenericType.hpp"
-#include "Enviroment.hpp"
 
 #include <string>
 #include <memory>
+
+class Enviroment;
 
 class ASTNode {
 public:
