@@ -24,11 +24,11 @@ bool ASTProcess::is_infix_func_call(Enviroment &env) const {
 }
 
 std::vector<GTPtr> ASTProcess::get_value_types(Enviroment &env) const {
-  std::vector<GTPtr> val_types;
-  for (const auto &i : val) {
-    val_types.push_back(i->return_type(env));
-  }
-  return val_types;
+	std::vector<GTPtr> val_types;
+	for (const auto &i : val) {
+		val_types.push_back(i->return_type(env));
+	}
+	return val_types;
 }
 
 std::vector<GenericValue>
@@ -38,6 +38,21 @@ ASTProcess::generate_values(Enviroment &env, llvm::IRBuilder<> &builder) const {
     values.push_back(i->to_value(env, builder));
   }
   return values;
+}
+
+std::vector<GenericValue>
+ASTProcess::generate_values_impurley(Enviroment &env, llvm::IRBuilder<> &builder) const {
+	std::vector<GenericValue> values;
+	for (const auto &i : val) {
+		if (i->type() == DataType::Process){
+			auto i_proc = static_cast<ASTProcess*>(i.get());
+			values.push_back(i_proc->to_value(env, builder, false));
+		} else {
+			values.push_back(i->to_value(env, builder));
+		}
+	}
+	return values;
+
 }
 
 GenericValue reduce(Enviroment &env, llvm::IRBuilder<> &builder, ASTProcess p) {
@@ -77,12 +92,14 @@ GenericValue ASTProcess::to_value(Enviroment &env, llvm::IRBuilder<> &builder, b
 		if (is_pure(env) && !dont_evaluate_purely) {
 			return reduce(env, builder, *this);
 		}
-		auto values = generate_values(env, builder);
+		auto values = dont_evaluate_purely ? generate_values_impurley(env, builder) :
+				generate_values(env, builder);
 		auto fn_args = std::vector<GenericValue>(values.begin() + 1, values.end());
 		return values.at(0).func->call(env, builder, fn_args);
 	}
 
-	auto values = generate_values(env, builder);
+	auto values = dont_evaluate_purely ? generate_values_impurley(env, builder) :
+			generate_values(env, builder);
 
 	if (is_infix_func_call(env)) {
 		std::vector<GenericValue> fn_args;
@@ -137,6 +154,10 @@ std::string ASTProcess::as_string() const {
 }
 
 bool ASTProcess::is_pure(Enviroment &env) const {
+	for (auto &i : val) {
+		if (!i->is_pure(env)) return false;
+	}
+
 	if (is_prefix_call(env, DataType::Macro)) {
 		auto args_list =
 			std::vector<std::shared_ptr<ASTNode>>(val.begin() + 1, val.end());

@@ -15,6 +15,7 @@ public:
   virtual DataType type() const = 0;
   virtual std::string as_string() const = 0;
   virtual GTPtr return_type(Enviroment &) const = 0;
+  virtual bool is_pure(Enviroment &) const {return true;}
 };
 
 using ASTPtr = std::shared_ptr<ASTNode>;

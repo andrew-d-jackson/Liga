@@ -16,7 +16,9 @@ public:
   bool is_infix_func_call(Enviroment &env) const;
   std::vector<GTPtr> get_value_types(Enviroment &env) const;
   std::vector<GenericValue> generate_values(Enviroment &env,
-	  llvm::IRBuilder<> &builder) const;
+          llvm::IRBuilder<> &builder) const;
+  std::vector<GenericValue> generate_values_impurley(Enviroment &env,
+          llvm::IRBuilder<> &builder) const;
   GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder);
   GenericValue to_value(Enviroment &env, llvm::IRBuilder<> &builder, bool dont_evaluate_purely);
   virtual GTPtr return_type(Enviroment &env) const;

@@ -54,3 +54,10 @@ std::string ASTVector::as_string() const {
   ret += ")";
   return ret;
 }
+
+bool ASTVector::is_pure(Enviroment &env) const {
+  for (auto &i : val) {
+    if (!i->is_pure(env)) return false;
+  }
+  return true;
+}
